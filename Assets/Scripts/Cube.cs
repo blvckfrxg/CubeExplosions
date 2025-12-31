@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections;
 
 namespace cube_destruction_game
 {
@@ -9,33 +8,26 @@ namespace cube_destruction_game
         [SerializeField] private Renderer _renderer;
 
         private float _splitChance;
+        private float _scale;
         private bool _isClicked;
-        private CubeDestructionCoordinator _coordinator;
-        private Color _originalColor;
-
-        private const float ScaleReductionFactor = 0.5f;
 
         public float SplitChance => _splitChance;
+        public float Scale => _scale;
 
         private void Awake()
         {
             if (_rigidbody == null) _rigidbody = GetComponent<Rigidbody>();
-            if (_renderer == null) _renderer = GetComponent<Renderer>();
+            if (_renderer != null) _renderer.material.color = Random.ColorHSV();
         }
 
-        public void Initialize(float parentSplitChance, Vector3 scale, Color color, CubeDestructionCoordinator coordinator)
+        public void Initialize(float parentSplitChance, float parentScale)
         {
-            _splitChance = parentSplitChance * ScaleReductionFactor;
-            transform.localScale = scale;
-            _coordinator = coordinator;
+            const float ScaleReductionFactor = 0.5f;
+            const float SplitChanceReductionFactor = 0.5f;
 
-            if (_renderer != null)
-            {
-                _renderer.material.color = color;
-                _originalColor = color;
-            }
-
-            Debug.Log($"Cube initialized: splitChance={_splitChance}, scale={scale}");
+            _splitChance = parentSplitChance * SplitChanceReductionFactor;
+            _scale = parentScale * ScaleReductionFactor;
+            transform.localScale = Vector3.one * _scale;
         }
 
         public void ApplyForce(Vector3 direction, float force)
@@ -50,42 +42,6 @@ namespace cube_destruction_game
         {
             if (_isClicked) return;
             _isClicked = true;
-
-            Debug.Log($"Mouse down on cube at {transform.position}, scale: {transform.localScale}");
-
-            if (_renderer != null)
-            {
-                StartCoroutine(FlashEffect());
-            }
-
-            if (_coordinator != null)
-            {
-                _coordinator.HandleCubeClick(this);
-            }
-            else
-            {
-                Debug.LogError("CubeDestructionCoordinator not found!");
-            }
-        }
-
-        private IEnumerator FlashEffect()
-        {
-            if (_renderer != null)
-            {
-                _renderer.material.color = Color.white;
-                yield return new WaitForSeconds(0.1f);
-                _renderer.material.color = _originalColor;
-            }
-        }
-
-        private void OnDestroy()
-        {
-            Debug.Log($"Cube destroyed at position: {transform.position}, scale: {transform.localScale}");
-        }
-
-        private void OnCollisionEnter(Collision collision)
-        {
-            Debug.Log($"Cube at {transform.position} collided with {collision.gameObject.name}");
         }
     }
 }

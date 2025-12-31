@@ -4,21 +4,37 @@ namespace cube_destruction_game
 {
     public class CubeRaycaster : MonoBehaviour
     {
-        public event System.Action<Cube> OnCubeHit;
+        private CubeDestructionCoordinator _coordinator;
+        private const float SearchDelay = 0.1f;
+
+        private void Start()
+        {
+            StartCoroutine(FindCoordinator());
+        }
+
+        private System.Collections.IEnumerator FindCoordinator()
+        {
+            yield return new WaitForSeconds(SearchDelay);
+            _coordinator = GetComponent<CubeDestructionCoordinator>();
+
+            if (_coordinator == null)
+            {
+                _coordinator = GetComponentInParent<CubeDestructionCoordinator>();
+            }
+        }
 
         private void Update()
         {
-            if (Input.GetMouseButtonDown(0))
-            {
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (_coordinator == null || !Input.GetMouseButtonDown(0)) return;
 
-                if (Physics.Raycast(ray, out RaycastHit hit))
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out RaycastHit hit))
+            {
+                Cube cube = hit.collider.GetComponent<Cube>();
+                if (cube != null)
                 {
-                    Cube cube = hit.collider.GetComponent<Cube>();
-                    if (cube != null)
-                    {
-                        OnCubeHit?.Invoke(cube);
-                    }
+                    _coordinator.HandleCubeClick(cube);
                 }
             }
         }

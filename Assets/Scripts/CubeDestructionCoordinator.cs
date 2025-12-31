@@ -5,63 +5,86 @@ namespace cube_destruction_game
 {
     public class CubeDestructionCoordinator : MonoBehaviour
     {
+        [Header("Dependencies")]
         [SerializeField] private CubeSpawner _spawner;
         [SerializeField] private CubeExploder _exploder;
+        [SerializeField] private CubeColorChanger _colorChanger;
+        [SerializeField] private CubeScaleCalculator _scaleCalculator;
 
-        private const int MinNewCubes = 2;
-        private const int MaxNewCubes = 6;
-        private const float InitialExplosionDelay = 0.5f;
+        [Header("Game Settings")]
+        [SerializeField] private float _initialSpawnHeight = 5f;
+        [SerializeField] private int _minNewCubes = 2;
+        [SerializeField] private int _maxNewCubes = 6;
+        [SerializeField] private float _initialExplosionDelay = 0.5f;
+
+        [Header("Force Settings")]
+        [SerializeField] private float _initialCubeForceMultiplier = 0.5f;
+        [SerializeField] private float _clickedCubeForceMultiplier = 1.0f;
+        [SerializeField] private float _newCubesForceMultiplier = 1.5f;
+        [SerializeField] private float _splitDelay = 0.1f;
+        [SerializeField] private float _noSplitDelay = 1.0f;
+
+        private const float InitialSplitChance = 2.0f;
+        private const float InitialScale = 2.0f;
 
         private void Start()
         {
-            Debug.Log("Game started!");
+            SpawnInitialCube();
+        }
 
-            Cube initialCube = _spawner.SpawnInitial();
+        private void SpawnInitialCube()
+        {
+            Vector3 spawnPosition = new Vector3(0, _initialSpawnHeight, 0);
+            Cube cube = _spawner.Spawn(spawnPosition, Quaternion.identity);
 
-            StartCoroutine(ExplodeInitialCube(initialCube));
+            cube.Initialize(InitialSplitChance, InitialScale);
+            _colorChanger.ApplyRandomColor(cube);
+
+            StartCoroutine(ExplodeInitialCube(cube));
         }
 
         private IEnumerator ExplodeInitialCube(Cube cube)
         {
-            yield return new WaitForSeconds(InitialExplosionDelay);
-            Debug.Log($"Exploding initial cube at {cube.transform.position}");
-            _exploder.ExplodeCube(cube, cube.transform.position + Vector3.up * 2f, 0.5f);
+            yield return new WaitForSeconds(_initialExplosionDelay);
+            _exploder.ExplodeCube(cube, cube.transform.position + Vector3.up * 2f, _initialCubeForceMultiplier);
         }
 
         public void HandleCubeClick(Cube clickedCube)
         {
             if (clickedCube == null) return;
 
-            Debug.Log($"Cube clicked at position: {clickedCube.transform.position}! Split chance: {clickedCube.SplitChance}, Random.value: {Random.value}");
-
             Vector3 explosionCenter = clickedCube.transform.position;
             float splitChance = clickedCube.SplitChance;
 
-            _exploder.ExplodeCube(clickedCube, explosionCenter, 1.0f);
+            _exploder.ExplodeCube(clickedCube, explosionCenter, _clickedCubeForceMultiplier);
 
             if (Random.value <= splitChance)
             {
-                Debug.Log($"Cube WILL split! splitChance={splitChance} >= Random.value={Random.value}");
-
-                int newCubeCount = Random.Range(MinNewCubes, MaxNewCubes + 1);
-                Debug.Log($"Creating {newCubeCount} new cubes");
-
-                Cube[] newCubes = _spawner.SpawnSplit(
-                    explosionCenter,
-                    clickedCube.transform.localScale,
-                    splitChance,
-                    newCubeCount
-                );
-
-                _exploder.ExplodeCubes(newCubes, explosionCenter, 1.5f);
-
-                StartCoroutine(DestroyCubeDelayed(clickedCube, 0.1f));
+                SplitCube(clickedCube, explosionCenter);
+                StartCoroutine(DestroyCubeDelayed(clickedCube, _splitDelay));
             }
             else
             {
-                Debug.Log($"Cube will NOT split! splitChance={splitChance} < Random.value={Random.value}");
-                StartCoroutine(DestroyCubeDelayed(clickedCube, 1.0f));
+                StartCoroutine(DestroyCubeDelayed(clickedCube, _noSplitDelay));
             }
+        }
+
+        private void SplitCube(Cube parentCube, Vector3 explosionCenter)
+        {
+            int newCubeCount = Random.Range(_minNewCubes, _maxNewCubes + 1);
+
+            Vector3[] positions = _scaleCalculator.CalculateSplitPositions(explosionCenter, newCubeCount);
+            Quaternion[] rotations = _scaleCalculator.GetRandomRotations(newCubeCount);
+
+            Cube[] newCubes = _spawner.SpawnMultiple(positions, rotations);
+
+            foreach (Cube cube in newCubes)
+            {
+                cube.Initialize(parentCube.SplitChance, parentCube.Scale);
+                _colorChanger.ApplyRandomColor(cube);
+            }
+
+            _exploder.ExplodeCubes(newCubes, explosionCenter, _newCubesForceMultiplier);
         }
 
         private IEnumerator DestroyCubeDelayed(Cube cube, float delay)
@@ -69,7 +92,6 @@ namespace cube_destruction_game
             yield return new WaitForSeconds(delay);
             if (cube != null && cube.gameObject != null)
             {
-                Debug.Log($"Destroying cube after {delay} seconds");
                 Destroy(cube.gameObject);
             }
         }
