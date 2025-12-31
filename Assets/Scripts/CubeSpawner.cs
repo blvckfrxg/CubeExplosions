@@ -2,7 +2,9 @@ using UnityEngine;
 
 public class CubeSpawner : MonoBehaviour
 {
-    private const float DEFAULT_SPAWN_HEIGHT = 5f;
+    private const float DefaultSpawnHeight = 5f;
+    private const float InitialSplitChance = 2f;
+    private const float InitialScale = 2f;
 
     [SerializeField] private Cube _cubePrefab;
 
@@ -14,16 +16,16 @@ public class CubeSpawner : MonoBehaviour
     public Cube Spawn(Vector3 position, Quaternion rotation)
     {
         if (_cubePrefab == null)
-        {
-            return null;
-        }
+            throw new System.InvalidOperationException("CubeSpawner: Cube prefab is not assigned!");
 
-        return Instantiate(_cubePrefab, position, rotation);
+        Cube cube = Instantiate(_cubePrefab, position, rotation);
+        cube.Initialize(InitialSplitChance, InitialScale);
+        return cube;
     }
 
     public Cube SpawnInitial()
     {
-        Vector3 spawnPosition = new Vector3(0f, DEFAULT_SPAWN_HEIGHT, 0f);
+        Vector3 spawnPosition = new Vector3(0f, DefaultSpawnHeight, 0f);
         return Spawn(spawnPosition);
     }
 }

@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class RaycastService : MonoBehaviour
 {
-    private const string MAIN_CAMERA_TAG = "MainCamera";
+    private const string MainCameraTag = "MainCamera";
 
     [SerializeField] private Camera _mainCamera;
     [SerializeField] private LayerMask _interactionLayer;
@@ -20,23 +20,17 @@ public class RaycastService : MonoBehaviour
     private void FindMainCamera()
     {
         _mainCamera = Camera.main;
-
         if (_mainCamera == null)
         {
-            GameObject cameraObject = GameObject.FindWithTag(MAIN_CAMERA_TAG);
+            GameObject cameraObject = GameObject.FindWithTag(MainCameraTag);
             if (cameraObject != null)
-            {
                 _mainCamera = cameraObject.GetComponent<Camera>();
-            }
         }
     }
 
     public void PerformRaycast(Vector2 screenPosition)
     {
-        if (_mainCamera == null)
-        {
-            return;
-        }
+        if (_mainCamera == null) return;
 
         Ray ray = _mainCamera.ScreenPointToRay(screenPosition);
 

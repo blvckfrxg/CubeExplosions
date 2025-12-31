@@ -5,9 +5,9 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class Cube : MonoBehaviour
 {
-    private const float SCALE_REDUCTION_FACTOR = 0.5f;
-    private const float SPLIT_CHANCE_REDUCTION_FACTOR = 0.5f;
-    private const float MIN_SCALE = 0.1f;
+    private const float ScaleReductionFactor = 0.5f;
+    private const float SplitChanceReductionFactor = 0.5f;
+    private const float MinScale = 0.1f;
 
     private Rigidbody _rigidbody;
     private Renderer _renderer;
@@ -33,39 +33,25 @@ public class Cube : MonoBehaviour
 
     public void Initialize(float parentSplitChance, float parentScale)
     {
-        _splitChance = parentSplitChance * SPLIT_CHANCE_REDUCTION_FACTOR;
-        _scale = parentScale * SCALE_REDUCTION_FACTOR;
-
-        if (_scale < MIN_SCALE)
-        {
-            _scale = MIN_SCALE;
-        }
-
+        _splitChance = parentSplitChance * SplitChanceReductionFactor;
+        _scale = Mathf.Max(parentScale * ScaleReductionFactor, MinScale);
         transform.localScale = Vector3.one * _scale;
     }
 
     public void ApplyForce(Vector3 direction, float force)
     {
-        if (_rigidbody == null)
+        if (_rigidbody != null)
         {
-            return;
+            _rigidbody.AddForce(direction * force, ForceMode.Impulse);
         }
-
-        _rigidbody.AddForce(direction * force, ForceMode.Impulse);
     }
 
     private void ApplyRandomColor()
     {
-        if (_renderer == null)
+        if (_renderer != null)
         {
-            return;
+            _originalColor = Random.ColorHSV();
+            _renderer.material.color = _originalColor;
         }
-
-        _originalColor = Random.ColorHSV();
-        _renderer.material.color = _originalColor;
-    }
-
-    private void OnCollisionEnter(Collision collision)
-    {
     }
 }

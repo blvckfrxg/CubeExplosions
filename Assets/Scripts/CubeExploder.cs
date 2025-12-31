@@ -2,18 +2,15 @@ using UnityEngine;
 
 public class CubeExploder : MonoBehaviour
 {
-    private const float DEFAULT_UPWARDS_MODIFIER = 0.5f;
-    private const float MIN_DISTANCE_THRESHOLD_SQR = 0.01f;
+    private const float DefaultUpwardsModifier = 0.5f;
+    private const float MinDistanceThresholdSqr = 0.01f;
 
     [SerializeField] private float _explosionForce = 500f;
-    [SerializeField] private float _upwardsModifier = DEFAULT_UPWARDS_MODIFIER;
+    [SerializeField] private float _upwardsModifier = DefaultUpwardsModifier;
 
     public void ExplodeCube(Cube cube, Vector3 explosionCenter, float forceMultiplier = 1f)
     {
-        if (cube == null)
-        {
-            return;
-        }
+        if (cube == null) return;
 
         Vector3 direction = CalculateExplosionDirection(cube.Position, explosionCenter);
         float force = _explosionForce * forceMultiplier;
@@ -23,10 +20,7 @@ public class CubeExploder : MonoBehaviour
 
     public void ExplodeCubes(Cube[] cubes, Vector3 explosionCenter, float forceMultiplier = 1f)
     {
-        if (cubes == null)
-        {
-            return;
-        }
+        if (cubes == null) return;
 
         foreach (Cube cube in cubes)
         {
@@ -42,7 +36,7 @@ public class CubeExploder : MonoBehaviour
         Vector3 direction = cubePosition - explosionCenter;
         float distanceSqr = direction.sqrMagnitude;
 
-        if (distanceSqr < MIN_DISTANCE_THRESHOLD_SQR)
+        if (distanceSqr < MinDistanceThresholdSqr)
         {
             direction = Random.onUnitSphere;
             direction.y = Mathf.Abs(direction.y);
