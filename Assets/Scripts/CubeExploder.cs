@@ -2,11 +2,9 @@ using UnityEngine;
 
 public class CubeExploder : MonoBehaviour
 {
-    private const float DefaultUpwardsModifier = 0.5f;
-    private const float MinDistanceThresholdSqr = 0.01f;
-
     [SerializeField] private float _explosionForce = 500f;
-    [SerializeField] private float _upwardsModifier = DefaultUpwardsModifier;
+    [SerializeField] private float _upwardsModifier = 0.5f;
+    private const float MinDistanceThresholdSqr = 0.01f;
 
     public void ExplodeCube(Cube cube, Vector3 explosionCenter, float forceMultiplier = 1f)
     {
@@ -25,9 +23,7 @@ public class CubeExploder : MonoBehaviour
         foreach (Cube cube in cubes)
         {
             if (cube != null)
-            {
                 ExplodeCube(cube, explosionCenter, forceMultiplier);
-            }
         }
     }
 
