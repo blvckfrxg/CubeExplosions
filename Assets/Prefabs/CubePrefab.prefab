@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 763282763892829647}
   - component: {fileID: 3269096056667581671}
   - component: {fileID: 4440767754582910992}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: CubePrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -153,5 +153,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9851ac30fa1407d42bb9f60990ae1f5b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::cube_destruction_game.Cube
-  _rigidbody: {fileID: 0}
-  _renderer: {fileID: 0}

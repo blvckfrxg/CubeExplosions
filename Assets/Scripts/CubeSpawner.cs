@@ -1,32 +1,29 @@
 using UnityEngine;
 
-namespace cube_destruction_game
+public class CubeSpawner : MonoBehaviour
 {
-    public class CubeSpawner : MonoBehaviour
+    private const float DEFAULT_SPAWN_HEIGHT = 5f;
+
+    [SerializeField] private Cube _cubePrefab;
+
+    public Cube Spawn(Vector3 position)
     {
-        [SerializeField] private Cube _cubePrefab;
+        return Spawn(position, Quaternion.identity);
+    }
 
-        public Cube Spawn(Vector3 position, Quaternion rotation)
+    public Cube Spawn(Vector3 position, Quaternion rotation)
+    {
+        if (_cubePrefab == null)
         {
-            return Instantiate(_cubePrefab, position, rotation);
+            return null;
         }
 
-        public Cube[] SpawnMultiple(Vector3[] positions, Quaternion[] rotations)
-        {
-            if (positions.Length != rotations.Length)
-            {
-                Debug.LogError("Positions and rotations arrays must have the same length!");
-                return new Cube[0];
-            }
+        return Instantiate(_cubePrefab, position, rotation);
+    }
 
-            Cube[] cubes = new Cube[positions.Length];
-
-            for (int i = 0; i < positions.Length; i++)
-            {
-                cubes[i] = Spawn(positions[i], rotations[i]);
-            }
-
-            return cubes;
-        }
+    public Cube SpawnInitial()
+    {
+        Vector3 spawnPosition = new Vector3(0f, DEFAULT_SPAWN_HEIGHT, 0f);
+        return Spawn(spawnPosition);
     }
 }

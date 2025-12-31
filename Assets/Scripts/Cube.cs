@@ -1,47 +1,71 @@
 using UnityEngine;
 
-namespace cube_destruction_game
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Renderer))]
+[RequireComponent(typeof(Collider))]
+public class Cube : MonoBehaviour
 {
-    public class Cube : MonoBehaviour
+    private const float SCALE_REDUCTION_FACTOR = 0.5f;
+    private const float SPLIT_CHANCE_REDUCTION_FACTOR = 0.5f;
+    private const float MIN_SCALE = 0.1f;
+
+    private Rigidbody _rigidbody;
+    private Renderer _renderer;
+
+    private float _splitChance;
+    private float _scale;
+    private Color _originalColor;
+
+    public float SplitChance => _splitChance;
+    public float Scale => _scale;
+    public Vector3 Position => transform.position;
+
+    private void Awake()
     {
-        [SerializeField] private Rigidbody _rigidbody;
-        [SerializeField] private Renderer _renderer;
+        _rigidbody = GetComponent<Rigidbody>();
+        _renderer = GetComponent<Renderer>();
+    }
 
-        private float _splitChance;
-        private float _scale;
-        private bool _isClicked;
+    private void OnEnable()
+    {
+        ApplyRandomColor();
+    }
 
-        public float SplitChance => _splitChance;
-        public float Scale => _scale;
+    public void Initialize(float parentSplitChance, float parentScale)
+    {
+        _splitChance = parentSplitChance * SPLIT_CHANCE_REDUCTION_FACTOR;
+        _scale = parentScale * SCALE_REDUCTION_FACTOR;
 
-        private void Awake()
+        if (_scale < MIN_SCALE)
         {
-            if (_rigidbody == null) _rigidbody = GetComponent<Rigidbody>();
-            if (_renderer != null) _renderer.material.color = Random.ColorHSV();
+            _scale = MIN_SCALE;
         }
 
-        public void Initialize(float parentSplitChance, float parentScale)
-        {
-            const float ScaleReductionFactor = 0.5f;
-            const float SplitChanceReductionFactor = 0.5f;
+        transform.localScale = Vector3.one * _scale;
+    }
 
-            _splitChance = parentSplitChance * SplitChanceReductionFactor;
-            _scale = parentScale * ScaleReductionFactor;
-            transform.localScale = Vector3.one * _scale;
+    public void ApplyForce(Vector3 direction, float force)
+    {
+        if (_rigidbody == null)
+        {
+            return;
         }
 
-        public void ApplyForce(Vector3 direction, float force)
+        _rigidbody.AddForce(direction * force, ForceMode.Impulse);
+    }
+
+    private void ApplyRandomColor()
+    {
+        if (_renderer == null)
         {
-            if (_rigidbody != null)
-            {
-                _rigidbody.AddForce(direction * force, ForceMode.Impulse);
-            }
+            return;
         }
 
-        private void OnMouseDown()
-        {
-            if (_isClicked) return;
-            _isClicked = true;
-        }
+        _originalColor = Random.ColorHSV();
+        _renderer.material.color = _originalColor;
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
     }
 }

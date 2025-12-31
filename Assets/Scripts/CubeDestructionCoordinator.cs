@@ -1,99 +1,118 @@
 using UnityEngine;
-using System.Collections;
 
-namespace cube_destruction_game
+public class CubeDestructionCoordinator : MonoBehaviour
 {
-    public class CubeDestructionCoordinator : MonoBehaviour
+    private const int MIN_NEW_CUBES = 2;
+    private const int MAX_NEW_CUBES = 6;
+
+    private const float INITIAL_SPLIT_CHANCE = 2f;
+    private const float INITIAL_FORCE_MULTIPLIER = 0.5f;
+    private const float CLICK_FORCE_MULTIPLIER = 1f;
+    private const float NEW_CUBES_FORCE_MULTIPLIER = 1.5f;
+
+    [SerializeField] private CubeSpawner _spawner;
+    [SerializeField] private CubeExploder _exploder;
+    [SerializeField] private CubeScaleCalculator _scaleCalculator;
+    [SerializeField] private CubePositionCalculator _positionCalculator;
+    [SerializeField] private RaycastService _raycastService;
+
+    [SerializeField] private float _initialScale = 2f;
+    [SerializeField] private float _initialExplosionDelay = 0.5f;
+
+    private Cube _initialCube;
+
+    private void Awake()
     {
-        [Header("Dependencies")]
-        [SerializeField] private CubeSpawner _spawner;
-        [SerializeField] private CubeExploder _exploder;
-        [SerializeField] private CubeColorChanger _colorChanger;
-        [SerializeField] private CubeScaleCalculator _scaleCalculator;
-
-        [Header("Game Settings")]
-        [SerializeField] private float _initialSpawnHeight = 5f;
-        [SerializeField] private int _minNewCubes = 2;
-        [SerializeField] private int _maxNewCubes = 6;
-        [SerializeField] private float _initialExplosionDelay = 0.5f;
-
-        [Header("Force Settings")]
-        [SerializeField] private float _initialCubeForceMultiplier = 0.5f;
-        [SerializeField] private float _clickedCubeForceMultiplier = 1.0f;
-        [SerializeField] private float _newCubesForceMultiplier = 1.5f;
-        [SerializeField] private float _splitDelay = 0.1f;
-        [SerializeField] private float _noSplitDelay = 1.0f;
-
-        private const float InitialSplitChance = 2.0f;
-        private const float InitialScale = 2.0f;
-
-        private void Start()
+        if (_raycastService == null)
         {
-            SpawnInitialCube();
+            return;
         }
 
-        private void SpawnInitialCube()
+        _raycastService.OnHitDetected += HandleRaycastHit;
+    }
+
+    private void OnDestroy()
+    {
+        if (_raycastService == null)
         {
-            Vector3 spawnPosition = new Vector3(0, _initialSpawnHeight, 0);
-            Cube cube = _spawner.Spawn(spawnPosition, Quaternion.identity);
-
-            cube.Initialize(InitialSplitChance, InitialScale);
-            _colorChanger.ApplyRandomColor(cube);
-
-            StartCoroutine(ExplodeInitialCube(cube));
+            return;
         }
 
-        private IEnumerator ExplodeInitialCube(Cube cube)
+        _raycastService.OnHitDetected -= HandleRaycastHit;
+    }
+
+    private void Start()
+    {
+        SpawnInitialCube();
+    }
+
+    private void SpawnInitialCube()
+    {
+        _initialCube = _spawner.SpawnInitial();
+
+        if (_initialCube == null)
         {
-            yield return new WaitForSeconds(_initialExplosionDelay);
-            _exploder.ExplodeCube(cube, cube.transform.position + Vector3.up * 2f, _initialCubeForceMultiplier);
+            return;
         }
 
-        public void HandleCubeClick(Cube clickedCube)
+        _initialCube.Initialize(INITIAL_SPLIT_CHANCE, _initialScale);
+        Invoke(nameof(ExplodeInitialCube), _initialExplosionDelay);
+    }
+
+    private void ExplodeInitialCube()
+    {
+        if (_initialCube == null)
         {
-            if (clickedCube == null) return;
-
-            Vector3 explosionCenter = clickedCube.transform.position;
-            float splitChance = clickedCube.SplitChance;
-
-            _exploder.ExplodeCube(clickedCube, explosionCenter, _clickedCubeForceMultiplier);
-
-            if (Random.value <= splitChance)
-            {
-                SplitCube(clickedCube, explosionCenter);
-                StartCoroutine(DestroyCubeDelayed(clickedCube, _splitDelay));
-            }
-            else
-            {
-                StartCoroutine(DestroyCubeDelayed(clickedCube, _noSplitDelay));
-            }
+            return;
         }
 
-        private void SplitCube(Cube parentCube, Vector3 explosionCenter)
+        _exploder.ExplodeCube(
+            _initialCube,
+            _initialCube.Position + Vector3.up * 2f,
+            INITIAL_FORCE_MULTIPLIER
+        );
+    }
+
+    private void HandleRaycastHit(RaycastHit hit)
+    {
+        if (!hit.collider.TryGetComponent(out Cube cube))
         {
-            int newCubeCount = Random.Range(_minNewCubes, _maxNewCubes + 1);
-
-            Vector3[] positions = _scaleCalculator.CalculateSplitPositions(explosionCenter, newCubeCount);
-            Quaternion[] rotations = _scaleCalculator.GetRandomRotations(newCubeCount);
-
-            Cube[] newCubes = _spawner.SpawnMultiple(positions, rotations);
-
-            foreach (Cube cube in newCubes)
-            {
-                cube.Initialize(parentCube.SplitChance, parentCube.Scale);
-                _colorChanger.ApplyRandomColor(cube);
-            }
-
-            _exploder.ExplodeCubes(newCubes, explosionCenter, _newCubesForceMultiplier);
+            return;
         }
 
-        private IEnumerator DestroyCubeDelayed(Cube cube, float delay)
+        HandleCubeClick(cube);
+    }
+
+    private void HandleCubeClick(Cube cube)
+    {
+        _exploder.ExplodeCube(cube, cube.Position, CLICK_FORCE_MULTIPLIER);
+
+        if (Random.value > cube.SplitChance)
         {
-            yield return new WaitForSeconds(delay);
-            if (cube != null && cube.gameObject != null)
-            {
-                Destroy(cube.gameObject);
-            }
+            Destroy(cube.gameObject, 1f);
+            return;
         }
+
+        SplitCube(cube);
+        Destroy(cube.gameObject, 0.1f);
+    }
+
+    private void SplitCube(Cube parent)
+    {
+        int count = Random.Range(MIN_NEW_CUBES, MAX_NEW_CUBES + 1);
+        Vector3[] positions = _positionCalculator.CalculateSplitPositions(parent.Position, count);
+
+        Cube[] cubes = new Cube[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            cubes[i] = _spawner.Spawn(positions[i]);
+            cubes[i].Initialize(
+                parent.SplitChance,
+                _scaleCalculator.GetNextScale(parent.Scale)
+            );
+        }
+
+        _exploder.ExplodeCubes(cubes, parent.Position, NEW_CUBES_FORCE_MULTIPLIER);
     }
 }
